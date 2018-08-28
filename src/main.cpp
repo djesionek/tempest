@@ -13,15 +13,19 @@
 
 #define DEBUG
 
+TempestServer server(80, IPAddress(192, 168, 4, 1), IPAddress(255, 255, 255, 0));
 
-/*
-Small Webserver Tutorial
-https://tttapa.github.io/ESP8266/Chap11%20-%20SPIFFS.html
-Web and JSON
-https://diyprojects.io/esp8266-web-server-part-4-arduinojson-load-save-files-spiffs/
-*/
+void modeSwitchInterrupt(){
+    Serial.printf("Interrupt. Pin 12 Value: %i\n",digitalRead(12));
 
-
+    if (digitalRead(12) == 0){
+        Serial.printf("Entering sleep mode\n");
+        server.disable();
+    } else {
+        Serial.printf("Leaving sleep mode\n");
+        server.init();
+    }
+}
 
 void setup() {
     Serial.begin(115200);
@@ -33,45 +37,22 @@ void setup() {
         WDT_FEED();
     }
 
+
+    pinMode(12, INPUT_PULLUP);
+    attachInterrupt(12, modeSwitchInterrupt, CHANGE);
+
     // prepare SPIFFS    
     spiffsInit();
 
-    // prepare webserver
-    webInit();
+    // Init the server suite (http, dns and access point)
+    server.init();
 
-    // Open AP
-    wifiInit();
 }
+
 
 void loop() {
-    // put your main code here, to run repeatedly:
-    serverHandleClient();
-}
-
-
-/*void openf(){
-    // this opens the file "f.txt" in read-mode
-    File f = SPIFFS.open("/f.txt", "r");
-
-    if (!f) {
-        Serial.println("File doesn't exist yet. Creating it");
-
-        // open the file in write mode
-        File f = SPIFFS.open("/f.txt", "w");
-        if (!f) {
-            Serial.println("file creation failed");
-        }
-        // now write two lines in key/value style with  end-of-line characters
-        f.println("ssid=abc");
-        f.println("password=123455secret");
-    } else {
-        // we could open the file
-        while(f.available()) {
-            //Lets read line by line from the file
-            String line = f.readStringUntil('\n');
-            Serial.println(line);
-        }
-
+    if (digitalRead(12) == 1){
+        server.handle();
     }
-    f.close();
-}*/
+    yield();
+}
